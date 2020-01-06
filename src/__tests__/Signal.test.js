@@ -1,6 +1,19 @@
 import wait from 'waait'
 
-import {Signal, constant, flatMap, merge, map, on} from '../Signal.bs'
+import {
+  Signal,
+  constant,
+  flatMap,
+  merge,
+  map,
+  on,
+  every,
+  sampleOn,
+  dropRepeats,
+  foldp,
+  filter,
+  flatten,
+} from '../Signal.bs'
 
 export const tick = (initial, interval, values) => {
   const vals = values.slice()
@@ -61,9 +74,7 @@ describe('Signal', () => {
       const check = jest.fn()
 
       const signalConverter = context => {
-        on(value => {
-          value.state += 1
-        }, context)
+        context.state += 1
       }
 
       const ticker = tick(1, 1, [{state: 1}, {state: 2}, {state: 3}])
@@ -73,6 +84,94 @@ describe('Signal', () => {
       await wait(50)
 
       expect(getCalls(check)).toEqual([{state: 2}, {state: 3}, {state: 4}])
+    })
+  })
+
+  describe('sampleOn()', () => {
+    it('samples values from one Signal when another Signal changes', async () => {
+      const check = jest.fn()
+
+      const ticker = tick(10, 20, [1, 2, 3, 4, 5, 6])
+
+      Signal.subscribe(check, sampleOn(ticker, every(40)))
+
+      await wait(150)
+
+      expect(getCalls(check)).toEqual([1, 3, 5, 6])
+    })
+  })
+
+  describe('dropRepeats()', () => {
+    it('only yields when value is != previous', async () => {
+      const check = jest.fn()
+
+      const ticker = tick(1, 1, [1, 1, 2, 2, 1, 3, 3])
+
+      Signal.subscribe(check, dropRepeats(ticker))
+
+      await wait(50)
+
+      expect(getCalls(check)).toEqual([1, 2, 1, 3])
+    })
+  })
+
+  describe('foldp()', () => {
+    it('can sum up values', async () => {
+      const check = jest.fn()
+
+      const ticker = tick(1, 1, [1, 2, 3, 4, 5])
+
+      Signal.subscribe(
+        check,
+        foldp(a => b => a + b, 0, ticker)
+      )
+
+      await wait(50)
+
+      expect(getCalls(check)).toEqual([1, 3, 6, 10, 15])
+    })
+  })
+
+  describe('filter()', () => {
+    it('filters values', async () => {
+      const check = jest.fn()
+
+      const ticker = tick(1, 1, [5, 3, 8, 4])
+
+      Signal.subscribe(
+        check,
+        filter(n => n < 5, 0, ticker)
+      )
+
+      await wait(50)
+
+      expect(getCalls(check)).toEqual([0, 3, 4])
+    })
+  })
+
+  describe('flatten()', () => {
+    it('flattens values', async () => {
+      const check = jest.fn()
+
+      const ticker = tick(10, 1, [[1, 2], [3, 4], [], [5, 6, 7]])
+
+      Signal.subscribe(check, flatten(0, ticker))
+
+      await wait(50)
+
+      expect(getCalls(check)).toEqual([1, 2, 3, 4, 5, 6, 7])
+    })
+
+    it("uses the seed when it doesn't have new values yet", async () => {
+      const check = jest.fn()
+
+      const ticker = tick(10, 1, [[], [1, 2], [3, 4], [], [5, 6, 7]])
+
+      Signal.subscribe(check, flatten(0, ticker))
+
+      await wait(50)
+
+      expect(getCalls(check)).toEqual([0, 1, 2, 3, 4, 5, 6, 7])
     })
   })
 })

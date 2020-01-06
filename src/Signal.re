@@ -202,32 +202,25 @@ let flatten: ('b, Signal.t('a)) => Signal.t('b) =
   (b, signal) => {
     let seed = ref(b);
 
-    let value = Signal.get(signal);
+    let first = ref(Some(Js.Array.copy(Signal.get(signal))));
 
-    if (!Js.Array.isArray(value)) {
-      Js.Exn.raiseError("Cannot flatten a value that is not an array");
-    };
-
-    let first = ref(Js.Array.copy(value));
-
-    if (Js.Array.length(first^) > 0) {
-      seed := first^[0];
-    } else {
-      first := [||];
+    switch (first^) {
+    | Some(f) => seed := f[0]
+    | None => first := None
     };
 
     let out = constant(seed^);
 
     let feed = (items: Js.Array.t('b)) =>
-      items |> Js.Array.forEach(item => out |> Signal.set(item));
+      Js.Array.forEach(item => out |> Signal.set(item), items);
 
     let produce = value =>
-      if (first^ === [||]) {
-        feed(value);
-      } else {
-        feed(Js.Array.sliceFrom(1, first^));
+      switch (first^) {
+      | Some(f) =>
+        feed(Js.Array.sliceFrom(1, f));
 
-        first := [||];
+        first := None;
+      | None => feed(value)
       };
 
     Js.Global.setTimeout(() => {signal |> Signal.subscribe(produce)}, 0)

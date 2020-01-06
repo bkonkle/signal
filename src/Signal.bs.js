@@ -3,7 +3,6 @@
 
 var List = require("bs-platform/lib/js/list.js");
 var Curry = require("bs-platform/lib/js/curry.js");
-var Js_exn = require("bs-platform/lib/js/js_exn.js");
 var Caml_array = require("bs-platform/lib/js/caml_array.js");
 var Caml_option = require("bs-platform/lib/js/caml_option.js");
 
@@ -158,17 +157,14 @@ function filter(func, a, signal) {
 
 function flatten(b, signal) {
   var seed = b;
-  var value = signal.value.contents;
-  if (!Array.isArray(value)) {
-    Js_exn.raiseError("Cannot flatten a value that is not an array");
-  }
   var first = {
-    contents: value.slice()
+    contents: signal.value.contents.slice()
   };
-  if (first.contents.length > 0) {
-    seed = Caml_array.caml_array_get(first.contents, 0);
+  var match = first.contents;
+  if (match !== undefined) {
+    seed = Caml_array.caml_array_get(match, 0);
   } else {
-    first.contents = /* array */[];
+    first.contents = undefined;
   }
   var out = make(seed);
   var feed = function (items) {
@@ -178,12 +174,13 @@ function flatten(b, signal) {
     return /* () */0;
   };
   var produce = function (value) {
-    if (first.contents === /* array */[]) {
-      return feed(value);
-    } else {
-      feed(first.contents.slice(1));
-      first.contents = /* array */[];
+    var match = first.contents;
+    if (match !== undefined) {
+      feed(match.slice(1));
+      first.contents = undefined;
       return /* () */0;
+    } else {
+      return feed(value);
     }
   };
   setTimeout((function (param) {
