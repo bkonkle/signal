@@ -1,7 +1,8 @@
 import wait from 'waait'
 
 import {
-  Signal,
+  _set,
+  _subscribe,
   constant,
   flatMap,
   merge,
@@ -24,7 +25,7 @@ export const tick = <A>(initial: number, interval: number, values: A[]) => {
 
   if (vals.length) {
     setTimeout(function pop() {
-      Signal.set(vals.shift(), out)
+      _set(vals.shift(), out)
 
       if (vals.length) {
         setTimeout(pop, interval)
@@ -63,7 +64,7 @@ describe('Signal', () => {
       const double = n => n * 2
       const ticker = tick(1, 1, [1, 2, 3])
 
-      Signal.subscribe(check, map(double, ticker))
+      _subscribe(check, map(double, ticker))
 
       await wait(50)
 
@@ -81,7 +82,7 @@ describe('Signal', () => {
 
       const ticker = tick(1, 1, [{state: 1}, {state: 2}, {state: 3}])
 
-      Signal.subscribe(check, on(signalConverter, ticker))
+      _subscribe(check, on(signalConverter, ticker))
 
       await wait(50)
 
@@ -95,7 +96,7 @@ describe('Signal', () => {
 
       const ticker = tick(10, 20, [1, 2, 3, 4, 5, 6])
 
-      Signal.subscribe(check, sampleOn(ticker, every(40)))
+      _subscribe(check, sampleOn(ticker, every(40)))
 
       await wait(150)
 
@@ -109,7 +110,7 @@ describe('Signal', () => {
 
       const ticker = tick(1, 1, [1, 1, 2, 2, 1, 3, 3])
 
-      Signal.subscribe(check, dropRepeats(ticker))
+      _subscribe(check, dropRepeats(ticker))
 
       await wait(50)
 
@@ -123,7 +124,7 @@ describe('Signal', () => {
 
       const ticker = tick(1, 1, [1, 2, 3, 4, 5])
 
-      Signal.subscribe(
+      _subscribe(
         check,
         foldp((a, b) => a + b, 0, ticker)
       )
@@ -140,7 +141,7 @@ describe('Signal', () => {
 
       const ticker = tick(1, 1, [5, 3, 8, 4])
 
-      Signal.subscribe(
+      _subscribe(
         check,
         filter(n => n < 5, 0, ticker)
       )
@@ -157,7 +158,7 @@ describe('Signal', () => {
 
       const ticker = tick(10, 1, [[1, 2], [3, 4], [], [5, 6, 7]])
 
-      Signal.subscribe(check, flatten(0, ticker))
+      _subscribe(check, flatten(0, ticker))
 
       await wait(50)
 
@@ -169,7 +170,7 @@ describe('Signal', () => {
 
       const ticker = tick(10, 1, [[], [1, 2], [3, 4], [], [5, 6, 7]])
 
-      Signal.subscribe(check, flatten(0, ticker))
+      _subscribe(check, flatten(0, ticker))
 
       await wait(50)
 
@@ -183,7 +184,7 @@ describe('Signal', () => {
 
       const ticker = tick(1, 1, [1, 2, 3, 4, 5])
 
-      Signal.subscribe(check, delay(40, ticker))
+      _subscribe(check, delay(40, ticker))
 
       await wait(50)
 
@@ -197,7 +198,7 @@ describe('Signal', () => {
 
       const ticker = tick(1, 1, [1, 2, 3])
 
-      Signal.subscribe(check, since(10, ticker))
+      _subscribe(check, since(10, ticker))
 
       await wait(25)
 

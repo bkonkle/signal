@@ -1,5 +1,5 @@
 {
-  "name": "@bkonkle/astral-api",
+  "name": "@bkonkle/signal",
   "sources": [
     {
       "dir": "src",

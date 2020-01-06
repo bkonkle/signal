@@ -5,65 +5,59 @@
  *
  * @typeparam 'a - The Type of value the Signal yields
  */
-module Signal = {
-  type t('a) = {
-    value: ref('a),
-    subscriptions: ref(list('a => unit)),
-  };
-
-  [@genType]
-  let make: 'a => t('a) =
-    initial => {
-      {value: ref(initial), subscriptions: ref([])};
-    };
-
-  [@genType]
-  let get = (signal: t('a)) => signal.value^;
-
-  [@genType]
-  let set = (value: 'a, signal: t('a)) => {
-    signal.value := value;
-
-    signal.subscriptions^ |> List.map(sub => sub(value)) |> ignore;
-  };
-
-  [@genType]
-  let subscribe = (sub: 'a => unit, signal: t('a)) => {
-    signal.subscriptions := [sub, ...signal.subscriptions^];
-
-    sub(get(signal));
-  };
+[@genType]
+type t('a) = {
+  value: ref('a),
+  subscriptions: ref(list('a => unit)),
 };
 
-/**
- * Re-export the inner Signal type.
- */
-type t('a) = Signal.t('a);
+[@genType]
+let make: 'a => t('a) =
+  initial => {
+    {value: ref(initial), subscriptions: ref([])};
+  };
+
+[@genType]
+let _get = (signal: t('a)) => signal.value^;
+
+[@genType]
+let _set = (value: 'a, signal: t('a)) => {
+  signal.value := value;
+
+  signal.subscriptions^ |> List.map(sub => sub(value)) |> ignore;
+};
+
+[@genType]
+let _subscribe = (sub: 'a => unit, signal: t('a)) => {
+  signal.subscriptions := [sub, ...signal.subscriptions^];
+
+  sub(_get(signal));
+};
 
 /**
  * Create a signal with a constant value.
  */
 [@genType]
-let constant = Signal.make;
+let constant = make;
 
 /**
  * Given a Signal of effects with no return value, run each effect as it comes in.
  */
 [@genType]
-let run = (signal: Signal.t(unit => unit)) =>
-  signal |> Signal.subscribe(value => value());
+let run = (signal: t(unit => unit)) =>
+  signal |> _subscribe(value => value());
 
 /**
  * Takes a signal of effects of 'a, and produces an effect which returns a signal which will take
  * each effect produced by the input signal, run it, and yield its returned value.
  */
 [@genType]
-let unwrap = (signal: Signal.t('a)) => {
-  let run = Signal.get(signal);
+let unwrap = (signal: t('a)) => {
+  let run = _get(signal);
   let out = constant(run());
-  let update = value => out |> Signal.set(value());
+  let update = value => out |> _set(value());
 
-  signal |> Signal.subscribe(update);
+  signal |> _subscribe(update);
 };
 
 /**
@@ -71,11 +65,10 @@ let unwrap = (signal: Signal.t('a)) => {
  * milliseconds.
  */
 [@genType]
-let every = (interval: int): Signal.t(float) => {
+let every = (interval: int): t(float) => {
   let out = constant(Js.Date.now());
 
-  Js.Global.setInterval(() => out |> Signal.set(Js.Date.now()), interval)
-  |> ignore;
+  Js.Global.setInterval(() => out |> _set(Js.Date.now()), interval) |> ignore;
 
   out;
 };
@@ -84,13 +77,13 @@ let every = (interval: int): Signal.t(float) => {
  * Apply a function to the Signal's value.
  */
 [@genType]
-let map: ('a => 'b, Signal.t('a)) => Signal.t('b) =
+let map: ('a => 'b, t('a)) => t('b) =
   (func, signal) => {
-    let out = constant(func(Signal.get(signal)));
+    let out = constant(func(_get(signal)));
 
-    let produce = value => out |> Signal.set(func(value));
+    let produce = value => out |> _set(func(value));
 
-    signal |> Signal.subscribe(produce);
+    signal |> _subscribe(produce);
 
     out;
   };
@@ -99,39 +92,39 @@ let map: ('a => 'b, Signal.t('a)) => Signal.t('b) =
  * Bind a new operation to the Signal, transforming the value.
  */
 [@genType]
-let flatMap: ('a => Signal.t('b), Signal.t('a)) => Signal.t('b) =
-  (func, signal) => func(Signal.get(signal));
+let flatMap: ('a => t('b), t('a)) => t('b) =
+  (func, signal) => func(_get(signal));
 
 /**
- * Apply a function stored in another Signal to the value stored in this Signal.
+ * Apply a function stored in another Signal to the value stored in this
  */
 [@genType]
-let apply: (Signal.t('a => 'b), Signal.t('a)) => Signal.t('b) =
+let apply: (t('a => 'b), t('a)) => t('b) =
   (source, signal) => {
-    let func = Signal.get(source);
-    let out = constant(func(Signal.get(signal)));
+    let func = _get(source);
+    let out = constant(func(_get(signal)));
 
-    let produce = _value => out |> Signal.set(func(Signal.get(signal)));
+    let produce = _value => out |> _set(func(_get(signal)));
 
-    source |> Signal.subscribe(produce);
-    signal |> Signal.subscribe(produce);
+    source |> _subscribe(produce);
+    signal |> _subscribe(produce);
 
     out;
   };
 
 /**
  * Merge two signals, returning a new signal which will yield a value whenever either of the input
- * signals yield. Its initial value will be that of the first signal.
+ * signals yield. Its initial value will be that of the first
  */
 [@genType]
-let merge: (Signal.t('a), Signal.t('a)) => Signal.t('a) =
+let merge: (t('a), t('a)) => t('a) =
   (source, signal) => {
-    let out = constant(Signal.get(signal));
+    let out = constant(_get(signal));
 
-    let produce = value => out |> Signal.set(value);
+    let produce = value => out |> _set(value);
 
-    source |> Signal.subscribe(produce);
-    signal |> Signal.subscribe(produce);
+    source |> _subscribe(produce);
+    signal |> _subscribe(produce);
 
     out;
   };
@@ -141,7 +134,7 @@ let merge: (Signal.t('a), Signal.t('a)) => Signal.t('a) =
  * the previous value of the output signal, to produce the new value of the output signal.
  */
 [@genType]
-let foldp: (('a, 'b) => 'b, 'b, Signal.t('a)) => Signal.t('b) =
+let foldp: (('a, 'b) => 'b, 'b, t('a)) => t('b) =
   (func, seed, signal) => {
     let acc = ref(seed);
     let out = constant(acc^);
@@ -149,10 +142,10 @@ let foldp: (('a, 'b) => 'b, 'b, Signal.t('a)) => Signal.t('b) =
     let produce = value => {
       acc := func(value, acc^);
 
-      out |> Signal.set(acc^);
+      out |> _set(acc^);
     };
 
-    signal |> Signal.subscribe(produce);
+    signal |> _subscribe(produce);
 
     out;
   };
@@ -162,13 +155,13 @@ let foldp: (('a, 'b) => 'b, 'b, Signal.t('a)) => Signal.t('b) =
  * signal yields.
  */
 [@genType]
-let sampleOn: (Signal.t('b), Signal.t('a)) => Signal.t('b) =
+let sampleOn: (t('b), t('a)) => t('b) =
   (source, signal) => {
-    let out = constant(Signal.get(source));
+    let out = constant(_get(source));
 
-    let produce = _value => out |> Signal.set(Signal.get(source));
+    let produce = _value => out |> _set(_get(source));
 
-    signal |> Signal.subscribe(produce);
+    signal |> _subscribe(produce);
 
     out;
   };
@@ -178,19 +171,19 @@ let sampleOn: (Signal.t('b), Signal.t('a)) => Signal.t('b) =
  * signal.
  */
 [@genType]
-let dropRepeats: Signal.t('a) => Signal.t('a) =
+let dropRepeats: t('a) => t('a) =
   signal => {
-    let prev = ref(Signal.get(signal));
+    let prev = ref(_get(signal));
     let out = constant(prev^);
 
     let produce = next =>
       if (prev^ !== next) {
         prev := next;
 
-        out |> Signal.set(prev^);
+        out |> _set(prev^);
       };
 
-    signal |> Signal.subscribe(produce);
+    signal |> _subscribe(produce);
 
     out;
   };
@@ -200,17 +193,17 @@ let dropRepeats: Signal.t('a) => Signal.t('a) =
  * false.
  */
 [@genType]
-let filter: ('a => bool, 'a, Signal.t('a)) => Signal.t('a) =
+let filter: ('a => bool, 'a, t('a)) => t('a) =
   (func, a, signal) => {
-    let value = Signal.get(signal);
+    let value = _get(signal);
     let out = constant(func(value) ? value : a);
 
     let produce = value =>
       if (func(value)) {
-        out |> Signal.set(value);
+        out |> _set(value);
       };
 
-    signal |> Signal.subscribe(produce);
+    signal |> _subscribe(produce);
 
     out;
   };
@@ -220,10 +213,10 @@ let filter: ('a => bool, 'a, Signal.t('a)) => Signal.t('a) =
  * in order.
  */
 [@genType]
-let flatten: ('b, Signal.t('a)) => Signal.t('b) =
+let flatten: ('b, t('a)) => t('b) =
   (b, signal) => {
     let seed = ref(b);
-    let first = ref(Some(Js.Array.copy(Signal.get(signal))));
+    let first = ref(Some(Js.Array.copy(_get(signal))));
 
     switch (first^) {
     | Some(f) =>
@@ -238,7 +231,7 @@ let flatten: ('b, Signal.t('a)) => Signal.t('b) =
     let out = constant(seed^);
 
     let feed = (items: Js.Array.t('b)) =>
-      Js.Array.forEach(item => out |> Signal.set(item), items);
+      Js.Array.forEach(item => out |> _set(item), items);
 
     let produce = value =>
       switch (first^) {
@@ -249,8 +242,7 @@ let flatten: ('b, Signal.t('a)) => Signal.t('b) =
       | None => feed(value)
       };
 
-    Js.Global.setTimeout(() => {signal |> Signal.subscribe(produce)}, 0)
-    |> ignore;
+    Js.Global.setTimeout(() => {signal |> _subscribe(produce)}, 0) |> ignore;
 
     out;
   };
@@ -259,11 +251,11 @@ let flatten: ('b, Signal.t('a)) => Signal.t('b) =
  * Runs side effects over the values of a Signal.
  */
 [@genType]
-let on: ('a => unit, Signal.t('a)) => Signal.t('a) =
+let on: ('a => unit, t('a)) => t('a) =
   (func, signal) => {
     let produce = value => func(value);
 
-    signal |> Signal.subscribe(produce);
+    signal |> _subscribe(produce);
 
     signal;
   };
@@ -272,9 +264,9 @@ let on: ('a => unit, Signal.t('a)) => Signal.t('a) =
  * Takes a signal and delays its yielded values by a given number of milliseconds.
  */
 [@genType]
-let delay: (int, Signal.t('a)) => Signal.t('a) =
+let delay: (int, t('a)) => t('a) =
   (time, signal) => {
-    let out = constant(Signal.get(signal));
+    let out = constant(_get(signal));
 
     let first = ref(true);
 
@@ -282,10 +274,10 @@ let delay: (int, Signal.t('a)) => Signal.t('a) =
       if (first^) {
         first := false;
       } else {
-        Js.Global.setTimeout(() => out |> Signal.set(value), time) |> ignore;
+        Js.Global.setTimeout(() => out |> _set(value), time) |> ignore;
       };
 
-    signal |> Signal.subscribe(produce);
+    signal |> _subscribe(produce);
 
     out;
   };
@@ -296,7 +288,7 @@ let delay: (int, Signal.t('a)) => Signal.t('a) =
  * input signal yields again in the interim.
  */
 [@genType]
-let since: (int, Signal.t('a)) => Signal.t(bool) =
+let since: (int, t('a)) => t(bool) =
   (time, signal) => {
     let out = constant(false);
 
@@ -304,7 +296,7 @@ let since: (int, Signal.t('a)) => Signal.t(bool) =
     let timer = ref(None);
 
     let tick = () => {
-      out |> Signal.set(false);
+      out |> _set(false);
 
       timer := None;
     };
@@ -314,14 +306,14 @@ let since: (int, Signal.t('a)) => Signal.t(bool) =
         ? first := false
         : {
           switch (timer^) {
-          | None => out |> Signal.set(true)
+          | None => out |> _set(true)
           | Some(timer) => Js.Global.clearTimeout(timer)
           };
 
           timer := Some(Js.Global.setTimeout(tick, time));
         };
 
-    signal |> Signal.subscribe(produce);
+    signal |> _subscribe(produce);
 
     out;
   };

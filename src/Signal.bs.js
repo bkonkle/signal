@@ -17,11 +17,11 @@ function make(initial) {
         };
 }
 
-function get(signal) {
+function _get(signal) {
   return signal.value.contents;
 }
 
-function set(value, signal) {
+function _set(value, signal) {
   signal.value.contents = value;
   List.map((function (sub) {
           return Curry._1(sub, value);
@@ -29,7 +29,7 @@ function set(value, signal) {
   return /* () */0;
 }
 
-function subscribe(sub, signal) {
+function _subscribe(sub, signal) {
   signal.subscriptions.contents = /* :: */[
     sub,
     signal.subscriptions.contents
@@ -37,15 +37,8 @@ function subscribe(sub, signal) {
   return Curry._1(sub, signal.value.contents);
 }
 
-var Signal = {
-  make: make,
-  get: get,
-  set: set,
-  subscribe: subscribe
-};
-
 function run(signal) {
-  return subscribe((function (value) {
+  return _subscribe((function (value) {
                 return Curry._1(value, /* () */0);
               }), signal);
 }
@@ -54,15 +47,15 @@ function unwrap(signal) {
   var run = signal.value.contents;
   var out = make(Curry._1(run, /* () */0));
   var update = function (value) {
-    return set(Curry._1(value, /* () */0), out);
+    return _set(Curry._1(value, /* () */0), out);
   };
-  return subscribe(update, signal);
+  return _subscribe(update, signal);
 }
 
 function every(interval) {
   var out = make(Date.now());
   setInterval((function (param) {
-          return set(Date.now(), out);
+          return _set(Date.now(), out);
         }), interval);
   return out;
 }
@@ -70,9 +63,9 @@ function every(interval) {
 function map(func, signal) {
   var out = make(Curry._1(func, signal.value.contents));
   var produce = function (value) {
-    return set(Curry._1(func, value), out);
+    return _set(Curry._1(func, value), out);
   };
-  subscribe(produce, signal);
+  _subscribe(produce, signal);
   return out;
 }
 
@@ -84,20 +77,20 @@ function apply(source, signal) {
   var func = source.value.contents;
   var out = make(Curry._1(func, signal.value.contents));
   var produce = function (_value) {
-    return set(Curry._1(func, signal.value.contents), out);
+    return _set(Curry._1(func, signal.value.contents), out);
   };
-  subscribe(produce, source);
-  subscribe(produce, signal);
+  _subscribe(produce, source);
+  _subscribe(produce, signal);
   return out;
 }
 
 function merge(source, signal) {
   var out = make(signal.value.contents);
   var produce = function (value) {
-    return set(value, out);
+    return _set(value, out);
   };
-  subscribe(produce, source);
-  subscribe(produce, signal);
+  _subscribe(produce, source);
+  _subscribe(produce, signal);
   return out;
 }
 
@@ -108,18 +101,18 @@ function foldp(func, seed, signal) {
   var out = make(acc.contents);
   var produce = function (value) {
     acc.contents = Curry._2(func, value, acc.contents);
-    return set(acc.contents, out);
+    return _set(acc.contents, out);
   };
-  subscribe(produce, signal);
+  _subscribe(produce, signal);
   return out;
 }
 
 function sampleOn(source, signal) {
   var out = make(source.value.contents);
   var produce = function (_value) {
-    return set(source.value.contents, out);
+    return _set(source.value.contents, out);
   };
-  subscribe(produce, signal);
+  _subscribe(produce, signal);
   return out;
 }
 
@@ -131,12 +124,12 @@ function dropRepeats(signal) {
   var produce = function (next) {
     if (prev.contents !== next) {
       prev.contents = next;
-      return set(prev.contents, out);
+      return _set(prev.contents, out);
     } else {
       return 0;
     }
   };
-  subscribe(produce, signal);
+  _subscribe(produce, signal);
   return out;
 }
 
@@ -146,12 +139,12 @@ function filter(func, a, signal) {
   var out = make(match ? value : a);
   var produce = function (value) {
     if (Curry._1(func, value)) {
-      return set(value, out);
+      return _set(value, out);
     } else {
       return 0;
     }
   };
-  subscribe(produce, signal);
+  _subscribe(produce, signal);
   return out;
 }
 
@@ -172,7 +165,7 @@ function flatten(b, signal) {
   var out = make(seed);
   var feed = function (items) {
     items.forEach((function (item) {
-            return set(item, out);
+            return _set(item, out);
           }));
     return /* () */0;
   };
@@ -187,14 +180,14 @@ function flatten(b, signal) {
     }
   };
   setTimeout((function (param) {
-          return subscribe(produce, signal);
+          return _subscribe(produce, signal);
         }), 0);
   return out;
 }
 
 function on(func, signal) {
   var produce = Curry.__1(func);
-  subscribe(produce, signal);
+  _subscribe(produce, signal);
   return signal;
 }
 
@@ -209,12 +202,12 @@ function delay(time, signal) {
       return /* () */0;
     } else {
       setTimeout((function (param) {
-              return set(value, out);
+              return _set(value, out);
             }), time);
       return /* () */0;
     }
   };
-  subscribe(produce, signal);
+  _subscribe(produce, signal);
   return out;
 }
 
@@ -236,7 +229,7 @@ function since(time, signal) {
     contents: undefined
   };
   var tick = function (param) {
-    set(false, out);
+    _set(false, out);
     timer.contents = undefined;
     return /* () */0;
   };
@@ -250,19 +243,22 @@ function since(time, signal) {
       if (match$1 !== undefined) {
         clearTimeout(Caml_option.valFromOption(match$1));
       } else {
-        set(true, out);
+        _set(true, out);
       }
       timer.contents = Caml_option.some(setTimeout(tick, time));
       return /* () */0;
     }
   };
-  subscribe(produce, signal);
+  _subscribe(produce, signal);
   return out;
 }
 
 var constant = make;
 
-exports.Signal = Signal;
+exports.make = make;
+exports._get = _get;
+exports._set = _set;
+exports._subscribe = _subscribe;
 exports.constant = constant;
 exports.run = run;
 exports.unwrap = unwrap;
