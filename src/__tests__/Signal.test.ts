@@ -13,6 +13,8 @@ import {
   foldp,
   filter,
   flatten,
+  delay,
+  since,
 } from '../Signal.gen'
 
 export const tick = <A>(initial: number, interval: number, values: A[]) => {
@@ -172,6 +174,36 @@ describe('Signal', () => {
       await wait(50)
 
       expect(getCalls(check)).toEqual([0, 1, 2, 3, 4, 5, 6, 7])
+    })
+  })
+
+  describe('delay()', () => {
+    it('yields the same values', async () => {
+      const check = jest.fn()
+
+      const ticker = tick(1, 1, [1, 2, 3, 4, 5])
+
+      Signal.subscribe(check, delay(40, ticker))
+
+      await wait(50)
+
+      expect(getCalls(check)).toEqual([1, 2, 3, 4, 5])
+    })
+  })
+
+  describe('since()', () => {
+    it('yields true only once for multiple yields, then false', async () => {
+      const check = jest.fn()
+
+      const ticker = tick(1, 1, [1, 2, 3])
+
+      Signal.subscribe(check, since(10, ticker))
+
+      await wait(25)
+
+      const result = check.mock.calls.map(call => call[0])
+
+      expect(result).toEqual([false, true, false])
     })
   })
 })

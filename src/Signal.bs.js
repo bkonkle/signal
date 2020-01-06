@@ -162,9 +162,12 @@ function flatten(b, signal) {
   };
   var match = first.contents;
   if (match !== undefined) {
-    seed = Caml_array.caml_array_get(match, 0);
-  } else {
-    first.contents = undefined;
+    var f = match;
+    if (f.length > 0) {
+      seed = Caml_array.caml_array_get(f, 0);
+    } else {
+      first.contents = undefined;
+    }
   }
   var out = make(seed);
   var feed = function (items) {

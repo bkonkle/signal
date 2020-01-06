@@ -36,6 +36,11 @@ module Signal = {
 };
 
 /**
+ * Re-export the inner Signal type.
+ */
+type t('a) = Signal.t('a);
+
+/**
  * Create a signal with a constant value.
  */
 [@genType]
@@ -218,12 +223,16 @@ let filter: ('a => bool, 'a, Signal.t('a)) => Signal.t('a) =
 let flatten: ('b, Signal.t('a)) => Signal.t('b) =
   (b, signal) => {
     let seed = ref(b);
-
     let first = ref(Some(Js.Array.copy(Signal.get(signal))));
 
     switch (first^) {
-    | Some(f) => seed := f[0]
-    | None => first := None
+    | Some(f) =>
+      if (Js.Array.length(f) > 0) {
+        seed := f[0];
+      } else {
+        first := None;
+      }
+    | None => ()
     };
 
     let out = constant(seed^);
