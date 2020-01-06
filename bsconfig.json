@@ -1,0 +1,24 @@
+{
+  "name": "@bkonkle/astral-api",
+  "sources": [
+    {
+      "dir": "src",
+      "subdirs": true
+    }
+  ],
+  "package-specs": {
+    "module": "commonjs",
+    "in-source": true
+  },
+  "suffix": ".bs.js",
+  "bs-dependencies": [],
+  "bsc-flags": ["-bs-super-errors"],
+  "warnings": {
+    "error": "+5"
+  },
+  "namespace": true,
+  "refmt": 3,
+  "gentypeconfig": {
+    "language": "typescript"
+  }
+}
