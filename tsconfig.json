@@ -10,7 +10,8 @@
     "noUnusedParameters": true,
     "pretty": true,
     "sourceMap": true,
-    "target": "esnext"
+    "target": "esnext",
+    "jsx": "react"
   },
   "include": ["src/**/*", "__tests__/**/*.ts"],
   "exclude": ["src/**/*.gen.tsx"]

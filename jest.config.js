@@ -6,6 +6,7 @@ module.exports = {
   testRegex: '(/(test|__tests__)/.*(\\.|/)(test|spec))\\.[j|t]sx?$',
   testURL: 'http://localhost',
   transform: {
-    '^.+\\.[j|t]sx?$': 'babel-jest',
+    '^.+\\.(js|ts)x?$': 'babel-jest',
   },
+  transformIgnorePatterns: ['node_modules/(?!(@glennsl/bs-jest|bs-platform)/)'],
 }

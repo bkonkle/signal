@@ -11,19 +11,23 @@ module Signal = {
     subscriptions: ref(list('a => unit)),
   };
 
+  [@genType]
   let make: 'a => t('a) =
     initial => {
       {value: ref(initial), subscriptions: ref([])};
     };
 
+  [@genType]
   let get = (signal: t('a)) => signal.value^;
 
+  [@genType]
   let set = (value: 'a, signal: t('a)) => {
     signal.value := value;
 
     signal.subscriptions^ |> List.map(sub => sub(value)) |> ignore;
   };
 
+  [@genType]
   let subscribe = (sub: 'a => unit, signal: t('a)) => {
     signal.subscriptions := [sub, ...signal.subscriptions^];
 
@@ -34,11 +38,13 @@ module Signal = {
 /**
  * Create a signal with a constant value.
  */
+[@genType]
 let constant = Signal.make;
 
 /**
  * Given a Signal of effects with no return value, run each effect as it comes in.
  */
+[@genType]
 let run = (signal: Signal.t(unit => unit)) =>
   signal |> Signal.subscribe(value => value());
 
@@ -46,6 +52,7 @@ let run = (signal: Signal.t(unit => unit)) =>
  * Takes a signal of effects of 'a, and produces an effect which returns a signal which will take
  * each effect produced by the input signal, run it, and yield its returned value.
  */
+[@genType]
 let unwrap = (signal: Signal.t('a)) => {
   let run = Signal.get(signal);
   let out = constant(run());
@@ -58,6 +65,7 @@ let unwrap = (signal: Signal.t('a)) => {
  * Creates a signal which yields the current time (according to now) every given number of
  * milliseconds.
  */
+[@genType]
 let every = (interval: int): Signal.t(float) => {
   let out = constant(Js.Date.now());
 
@@ -70,6 +78,7 @@ let every = (interval: int): Signal.t(float) => {
 /**
  * Apply a function to the Signal's value.
  */
+[@genType]
 let map: ('a => 'b, Signal.t('a)) => Signal.t('b) =
   (func, signal) => {
     let out = constant(func(Signal.get(signal)));
@@ -84,12 +93,14 @@ let map: ('a => 'b, Signal.t('a)) => Signal.t('b) =
 /**
  * Bind a new operation to the Signal, transforming the value.
  */
+[@genType]
 let flatMap: ('a => Signal.t('b), Signal.t('a)) => Signal.t('b) =
   (func, signal) => func(Signal.get(signal));
 
 /**
  * Apply a function stored in another Signal to the value stored in this Signal.
  */
+[@genType]
 let apply: (Signal.t('a => 'b), Signal.t('a)) => Signal.t('b) =
   (source, signal) => {
     let func = Signal.get(source);
@@ -107,6 +118,7 @@ let apply: (Signal.t('a => 'b), Signal.t('a)) => Signal.t('b) =
  * Merge two signals, returning a new signal which will yield a value whenever either of the input
  * signals yield. Its initial value will be that of the first signal.
  */
+[@genType]
 let merge: (Signal.t('a), Signal.t('a)) => Signal.t('a) =
   (source, signal) => {
     let out = constant(Signal.get(signal));
@@ -123,6 +135,7 @@ let merge: (Signal.t('a), Signal.t('a)) => Signal.t('a) =
  * Creates a past dependent signal. The function argument takes the value of the input signal, and
  * the previous value of the output signal, to produce the new value of the output signal.
  */
+[@genType]
 let foldp: (('a, 'b) => 'b, 'b, Signal.t('a)) => Signal.t('b) =
   (func, seed, signal) => {
     let acc = ref(seed);
@@ -143,6 +156,7 @@ let foldp: (('a, 'b) => 'b, 'b, Signal.t('a)) => Signal.t('b) =
  * Creates a signal which yields the current value of the second signal every time the first
  * signal yields.
  */
+[@genType]
 let sampleOn: (Signal.t('b), Signal.t('a)) => Signal.t('b) =
   (source, signal) => {
     let out = constant(Signal.get(source));
@@ -158,6 +172,7 @@ let sampleOn: (Signal.t('b), Signal.t('a)) => Signal.t('b) =
  * Create a signal which only yields values which aren't equal to the previous value of the input
  * signal.
  */
+[@genType]
 let dropRepeats: Signal.t('a) => Signal.t('a) =
   signal => {
     let prev = ref(Signal.get(signal));
@@ -179,6 +194,7 @@ let dropRepeats: Signal.t('a) => Signal.t('a) =
  * Takes a signal and filters out yielded values for which the provided predicate function returns
  * false.
  */
+[@genType]
 let filter: ('a => bool, 'a, Signal.t('a)) => Signal.t('a) =
   (func, a, signal) => {
     let value = Signal.get(signal);
@@ -198,6 +214,7 @@ let filter: ('a => bool, 'a, Signal.t('a)) => Signal.t('a) =
  * Turn a signal of collections of items into a signal of each item inside each collection,
  * in order.
  */
+[@genType]
 let flatten: ('b, Signal.t('a)) => Signal.t('b) =
   (b, signal) => {
     let seed = ref(b);
@@ -232,6 +249,7 @@ let flatten: ('b, Signal.t('a)) => Signal.t('b) =
 /**
  * Runs side effects over the values of a Signal.
  */
+[@genType]
 let on: ('a => unit, Signal.t('a)) => Signal.t('a) =
   (func, signal) => {
     let produce = value => func(value);
@@ -244,6 +262,7 @@ let on: ('a => unit, Signal.t('a)) => Signal.t('a) =
 /**
  * Takes a signal and delays its yielded values by a given number of milliseconds.
  */
+[@genType]
 let delay: (int, Signal.t('a)) => Signal.t('a) =
   (time, signal) => {
     let out = constant(Signal.get(signal));
@@ -267,6 +286,7 @@ let delay: (int, Signal.t('a)) => Signal.t('a) =
  * yields, then goes back to False after the given number of milliseconds have elapsed, unless the
  * input signal yields again in the interim.
  */
+[@genType]
 let since: (int, Signal.t('a)) => Signal.t(bool) =
   (time, signal) => {
     let out = constant(false);

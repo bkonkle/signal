@@ -13,9 +13,9 @@ import {
   foldp,
   filter,
   flatten,
-} from '../Signal.bs'
+} from '../Signal.gen'
 
-export const tick = (initial, interval, values) => {
+export const tick = <A>(initial: number, interval: number, values: A[]) => {
   const vals = values.slice()
 
   const out = constant(vals.shift())
@@ -123,7 +123,7 @@ describe('Signal', () => {
 
       Signal.subscribe(
         check,
-        foldp(a => b => a + b, 0, ticker)
+        foldp((a, b) => a + b, 0, ticker)
       )
 
       await wait(50)
