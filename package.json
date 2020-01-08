@@ -1,10 +1,10 @@
 {
-  "name": "@bkonkle/signal",
+  "name": "@bkonkle/wonka-mario",
   "version": "1.0.0",
-  "description": "Lightweight FRP inspired by Elm",
+  "description": "Wonka FRP Mario Demo",
   "repository": {
     "type": "git",
-    "url": "git@github.com:bkonkle/signal.git"
+    "url": "git@github.com:bkonkle/wonka-mario.git"
   },
   "author": "Brandon Konkle <brandon@konkle.us> (http://konkle.us)",
   "license": "MIT",
@@ -12,6 +12,7 @@
   "scripts": {
     "clean": "bsb -clean-world",
     "build": "bsb -make-world",
+    "bundle": "webpack",
     "watch": "bsb -make-world -w",
     "test": "NODE_ENV=test jest",
     "test.watch": "NODE_ENV=test jest --watch"
@@ -23,6 +24,7 @@
     "@types/jest": "^24.0.25",
     "babel-eslint": "^10.0.3",
     "babel-jest": "^24.9.0",
+    "babel-loader": "^8.0.6",
     "bs-platform": "^7.0.1",
     "eslint": "^6.8.0",
     "eslint-config-prettier": "^6.9.0",
@@ -30,9 +32,12 @@
     "identity-obj-proxy": "^3.0.0",
     "jest": "^24.9.0",
     "prettier": "^1.19.1",
-    "waait": "^1.0.5"
+    "waait": "^1.0.5",
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10"
   },
   "dependencies": {
-    "raf": "^3.4.1"
+    "bs-webapi": "^0.15.6",
+    "wonka": "^4.0.0-rc.0"
   }
 }

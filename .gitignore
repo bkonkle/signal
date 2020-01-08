@@ -60,4 +60,7 @@ yarn-error.log
 # Yarn Integrity file
 .yarn-integrity
 
+src/**/*.bs.js
+src/**/*.gen.tsx
 lib
+build
